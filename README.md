@@ -8,6 +8,6 @@ MSV: 231402281
 
 **Link mô phỏng Wokwi:** [Mạch mô phỏng](https://wokwi.com/projects/478002899002833921)
 
-**Web Demo:** [Giao diện Web giám sát](https://quynhlinh24-hub.github.io/TEN-REPOSITORY/Web%20Lab3.html)
+**Web Demo:** [Giao diện Web giám sát](https://quynhlinh24-hub.github.io/BTLab3/Web%20Lab3.html)
 
 **LƯU Ý: Trước khi chạy web, tạo một Device trên ThingsBoard, sao chép Access Token và thay vào biến tb_token
