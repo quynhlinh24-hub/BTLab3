@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Giám Sát & Cảnh Báo Runner</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f0f2f5; color: #333; padding: 20px; text-align: center; }
+        
+        /* GIAO DIỆN ĐĂNG NHẬP TRỰC QUAN */
+        .login-card {
+            background: #fff; max-width: 460px; margin: 30px auto; padding: 30px;
+            border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left;
+        }
+        .login-card h2 { margin-bottom: 20px; color: #1b4d3e; font-size: 22px; text-align: center; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; color: #555; font-weight: 600; }
+        .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .input-group input:focus { border-color: #27ae60; outline: none; }
+        .btn-login { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.2s; }
+        .btn-login:hover { background: #219150; }
+        
+        /* GIAO DIỆN DASHBOARD GIÁM SÁT */
+        #dashboard-view { display: none; }
+        #status-bar { font-size: 15px; padding: 8px 18px; border-radius: 20px; display: inline-block; margin-bottom: 20px; font-weight: bold; background: #d4edda; color: #155724; }
+        
+        .card-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 25px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 220px; }
+        .card h3 { margin: 0; color: #666; font-size: 15px; }
+        .val { font-size: 34px; font-weight: bold; margin: 10px 0; }
+        
+        .chart-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 25px; }
+        .chart-box { background: white; padding: 15px; border-radius: 12px; width: 45%; min-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        
+        .control-panel { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-width: 360px; }
+        button.ctrl-btn { padding: 12px 24px; font-size: 15px; font-weight: bold; margin: 8px; border: none; border-radius: 8px; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-on { background-color: #2ecc71; }
+        .btn-off { background-color: #e74c3c; }
+        .btn-mode { background-color: #3498db; }
+        .btn-logout { background-color: #95a5a6; padding: 6px 12px; border: none; border-radius: 4px; color: white; cursor: pointer; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. FORM ĐĂNG NHẬP & CẤU HÌNH THIẾT BỊ -->
+    <div id="login-view" class="login-card">
+        <h2>KẾT NỐI THINGSBOARD CLOUD</h2>
+        <div class="input-group">
+            <label>1. Tài khoản Email ThingsBoard:</label>
+            <input type="email" id="tb-username" placeholder="Nhập Email của bạn">
+        </div>
+        <div class="input-group">
+            <label>2. Mật khẩu:</label>
+            <input type="password" id="tb-password" placeholder="Nhập Mật khẩu">
+        </div>
+        <div class="input-group">
+            <label>3. Device Access Token (Gửi lệnh RPC):</label>
+            <input type="text" id="tb-token" value="Habjtk7MVxQLhBb8LGPN">
+        </div>
+        <div class="input-group">
+            <label>4. Device ID (Đọc Telemetry):</label>
+            <input type="text" id="tb-device-id" value="f4695e70-6b83-11f1-ad38-35390c349091">
+        </div>
+        <button class="btn-login" onclick="loginTB()">ĐĂNG NHẬP & KẾT NỐI</button>
+        <p id="login-error" style="color: #e74c3c; margin-top: 12px; font-size: 14px; display: none; font-weight: bold; text-align: center;"></p>
+    </div>
+
+    <!-- 2. GIAO DIỆN DASHBOARD GIÁM SÁT -->
+    <div id="dashboard-view">
+        <h1 style="color: #1b4d3e; margin-bottom: 8px;">HỆ THỐNG GIÁM SÁT RUNNER</h1>
+        <div>
+            <div id="status-bar">Đã kết nối ThingsBoard Cloud thành công</div>
+            <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+        </div>
+        <br>
+
+        <!-- CÁC THẺ SỐ LỚN -->
+        <div class="card-container">
+            <div class="card">
+                <h3>Nhiệt Độ</h3>
+                <div class="val" style="color: #e74c3c;"><span id="temp-val">--</span> °C</div>
+            </div>
+            <div class="card">
+                <h3>Áp Suất</h3>
+                <div class="val" style="color: #f39c12;"><span id="press-val">--</span> hPa</div>
+            </div>
+            <div class="card">
+                <h3>Độ Cao</h3>
+                <div class="val" style="color: #2980b9;"><span id="alt-val">--</span> m</div>
+            </div>
+        </div>
+
+        <!-- BIỂU ĐỒ REALTIME -->
+        <div class="chart-container">
+            <div class="chart-box">
+                <h4 style="margin-bottom: 10px; color: #555;">Biểu đồ Nhiệt độ (°C)</h4>
+                <canvas id="tempChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4 style="margin-bottom: 10px; color: #555;">Biểu đồ Độ cao (m)</h4>
+                <canvas id="altChart"></canvas>
+            </div>
+        </div>
+
+        <!-- NÚT BẤM ĐIỀU KHIỂN -->
+        <div class="control-panel">
+            <h3 style="margin-bottom: 10px; color: #444;">Điều Khiển Cảnh Báo Manual</h3>
+            <p style="margin-bottom: 15px;">Chế độ hoạt động: <strong id="mode-text" style="color: #2ecc71;">AUTO</strong></p>
+            <button class="ctrl-btn btn-mode" onclick="toggleMode()">CHUYỂN CHẾ ĐỘ (AUTO / MANUAL)</button>
+            <br><br>
+            <button id="btn-led" class="ctrl-btn btn-off" onclick="controlDevice('setLed')">Đèn LED: OFF</button>
+            <button id="btn-buzzer" class="ctrl-btn btn-off" onclick="controlDevice('setBuzzer')">Loa Báo: OFF</button>
+        </div>
+    </div>
+
+    <script>
+        let jwtToken = "";
+        let deviceToken = "";
+        let deviceId = "";
+        let pollingTimer = null;
+        
+        let isManualMode = false;
+        let ledState = false;
+        let buzzerState = false;
+
+        function createChart(id, label, color) {
+            return new Chart(document.getElementById(id), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: label, data: [], borderColor: color, backgroundColor: color, tension: 0.3, fill: false }] },
+                options: { responsive: true, animation: false, scales: { x: { display: true }, y: { beginAtZero: false } } }
+            });
+        }
+        const tempChart = createChart('tempChart', 'Nhiệt độ (°C)', '#e74c3c');
+        const altChart  = createChart('altChart', 'Độ cao (m)', '#2980b9');
+
+        function pushData(chart, val) {
+            if (chart.data.labels.length > 10) { 
+                chart.data.labels.shift(); 
+                chart.data.datasets[0].data.shift(); 
+            }
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            chart.data.datasets[0].data.push(parseFloat(val));
+            chart.update();
+        }
+
+        async function loginTB() {
+            const username = document.getElementById("tb-username").value.trim();
+            const password = document.getElementById("tb-password").value.trim();
+            deviceToken    = document.getElementById("tb-token").value.trim();
+            deviceId       = document.getElementById("tb-device-id").value.trim();
+            const errElem  = document.getElementById("login-error");
+
+            if (!username || !password || !deviceToken || !deviceId) {
+                errElem.innerText = "Vui lòng điền đầy đủ 4 thông tin!";
+                errElem.style.display = "block";
+                return;
+            }
+
+            try {
+                const res = await fetch("https://thingsboard.cloud/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+
+                if (!res.ok) throw new Error("Email hoặc Mật khẩu không chính xác!");
+                const data = await res.json();
+                jwtToken = data.token;
+
+                document.getElementById("login-view").style.display = "none";
+                document.getElementById("dashboard-view").style.display = "block";
+
+                fetchLatestTelemetry();
+                pollingTimer = setInterval(fetchLatestTelemetry, 1500);
+
+            } catch (err) {
+                errElem.innerText = err.message;
+                errElem.style.display = "block";
+            }
+        }
+
+        async function fetchLatestTelemetry() {
+            if (!deviceId || !jwtToken) return;
+
+            try {
+                const keys = "temp,pressure,altitude,led,buzzer,mode";
+                const url = `https://thingsboard.cloud/api/plugins/telemetry/DEVICE/${deviceId}/values/timeseries?keys=${keys}`;
+                
+                const res = await fetch(url, {
+                    headers: { "X-Authorization": `Bearer ${jwtToken}` }
+                });
+
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.temp && data.temp.length > 0) {
+                    const numVal = parseFloat(data.temp[0].value).toFixed(1);
+                    document.getElementById("temp-val").innerText = numVal;
+                    pushData(tempChart, numVal);
+                }
+
+                if (data.pressure && data.pressure.length > 0) {
+                    const numVal = parseFloat(data.pressure[0].value).toFixed(1);
+                    document.getElementById("press-val").innerText = numVal;
+                }
+
+                if (data.altitude && data.altitude.length > 0) {
+                    const numVal = parseFloat(data.altitude[0].value).toFixed(1);
+                    document.getElementById("alt-val").innerText = numVal;
+                    pushData(altChart, numVal);
+                } else if (data.pressure && data.pressure.length > 0) {
+                    const p = parseFloat(data.pressure[0].value);
+                    const estAlt = ((1013.25 - p) * 8.43).toFixed(1);
+                    document.getElementById("alt-val").innerText = estAlt;
+                    pushData(altChart, estAlt);
+                }
+
+                if (data.led && data.led.length > 0) {
+                    const val = data.led[0].value;
+                    ledState = (val == 1 || val == "1" || val == true || val == "true");
+                    document.getElementById("btn-led").innerText = "Đèn LED: " + (ledState ? "ON" : "OFF");
+                    document.getElementById("btn-led").className = "ctrl-btn " + (ledState ? "btn-on" : "btn-off");
+                }
+
+                if (data.buzzer && data.buzzer.length > 0) {
+                    const val = data.buzzer[0].value;
+                    buzzerState = (val == 1 || val == "1" || val == true || val == "true");
+                    document.getElementById("btn-buzzer").innerText = "Loa Báo: " + (buzzerState ? "ON" : "OFF");
+                    document.getElementById("btn-buzzer").className = "ctrl-btn " + (buzzerState ? "btn-on" : "btn-off");
+                }
+
+                if (data.mode && data.mode.length > 0) {
+                    const val = data.mode[0].value;
+                    isManualMode = (val === "MANUAL");
+                    document.getElementById("mode-text").innerText = isManualMode ? "MANUAL" : "AUTO";
+                    document.getElementById("mode-text").style.color = isManualMode ? "#e67e22" : "#2ecc71";
+                }
+
+            } catch (e) {
+                console.error("Lỗi đọc dữ liệu:", e);
+            }
+        }
+
+        async function sendRPCCommand(method, params) {
+            try {
+                await fetch(`https://thingsboard.cloud/api/v1/${deviceToken}/rpc`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method: method, params: params })
+                });
+                setTimeout(fetchLatestTelemetry, 300);
+            } catch (err) {
+                console.error("Lỗi gửi RPC:", err);
+            }
+        }
+
+        function toggleMode() {
+            isManualMode = !isManualMode;
+            sendRPCCommand("setMode", isManualMode);
+        }
+
+        function controlDevice(methodName) {
+            if (!isManualMode) {
+                alert("Vui lòng nhấn nút 'CHUYỂN CHẾ ĐỘ' sang MANUAL để điều khiển!");
+                return;
+            }
+            if (methodName === 'setLed') sendRPCCommand("setLed", !ledState);
+            if (methodName === 'setBuzzer') sendRPCCommand("setBuzzer", !buzzerState);
+        }
+
+        function logout() {
+            if (pollingTimer) clearInterval(pollingTimer);
+            jwtToken = "";
+            document.getElementById("login-view").style.display = "block";
+            document.getElementById("dashboard-view").style.display = "none";
+        }
+    </script>
+</body>
+</html>
