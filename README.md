@@ -1,4 +1,8 @@
-Lab3
+**Lab3 - Đề 1**
+
+Họ tên: Đinh Quỳnh Linh
+
+MSV: 231402281
 
 **Báo cáo Word:** [Báo cáo Lab 3.docx](https://1drv.ms/w/c/02a914f1cf95c235/IQDC9nufM0FxSZxZQO_haEv7AU3gwwmnLQgeeLXnNtqiC_I?e=1a69Sx)
 
