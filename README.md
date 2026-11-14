@@ -4,4 +4,4 @@ Lab3
 
 **Link mô phỏng Wokwi:** [Trải nghiệm mạch tại đây](https://wokwi.com/projects/478002899002833921)
 
-**LƯU Ý: Trước khi chạy, tạo một Device trên ThingsBoard, sao chép Access Token và thay vào biến tb_token
+**LƯU Ý: Trước khi chạy web, tạo một Device trên ThingsBoard, sao chép Access Token và thay vào biến tb_token
